@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>化学 物質量(mol) & 粒子・質量・体積 相互変換シミュレーター</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Inter Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              dark: '#0B0F19',
+              card: '#111827',
+              border: '#1F2937',
+              accent: '#06B6D4',
+              accentHover: '#0891B2',
+              neonGreen: '#10B981',
+              neonPurple: '#A855F7',
+              neonYellow: '#F59E0B'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #0B0F19;
+      color: #F3F4F6;
+      font-family: 'Inter', sans-serif;
+    }
+    .glow-accent {
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.25);
+    }
+    .glow-card {
+      background: rgba(17, 24, 39, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #111827;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #374151;
+      border-radius: 3px;
+    }
+    /* Flowchart highlight active styling */
+    .flow-node-active {
+      border-color: #06B6D4 !important;
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+      background-color: rgba(6, 182, 212, 0.1) !important;
+    }
+    .flow-arrow-active {
+      color: #06B6D4 !important;
+      text-shadow: 0 0 8px #06B6D4;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-cyan-500 selection:text-black">
+
+  <!-- Header Header Nav -->
+  <header class="border-b border-gray-800 bg-gray-900/80 backdrop-filter backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/30">
+          <i class="fa-solid fa-atom text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-white tracking-wide flex items-center gap-2">
+            Molecule Lab <span class="text-xs bg-cyan-950 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded-full font-normal">物質量 mol</span>
+          </h1>
+          <p class="text-xs text-gray-400">化学基礎：物質量・個数・質量・気体体積の相互変換</p>
+        </div>
+      </div>
+
+      <!-- Tab Buttons -->
+      <nav class="flex bg-gray-950 p-1 rounded-xl border border-gray-800 text-sm font-medium">
+        <button id="tab-btn-1" onclick="switchTab(1)" class="px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 bg-cyan-600 text-white shadow-md">
+          <i class="fa-solid fa-calculator"></i>
+          <span>① mol ➔ 3量変換</span>
+        </button>
+        <button id="tab-btn-2" onclick="switchTab(2)" class="px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 text-gray-400 hover:text-white">
+          <i class="fa-solid fa-rotate-left"></i>
+          <span>② 逆引き変換</span>
+        </button>
+        <button id="tab-btn-3" onclick="switchTab(3)" class="px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 text-gray-400 hover:text-white">
+          <i class="fa-solid fa-graduation-cap"></i>
+          <span>③ 演習クイズ</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
+
+    <!-- Constant info banner -->
+    <div class="mb-6 p-3 rounded-xl bg-gray-900/60 border border-gray-800 text-xs text-gray-300 flex flex-wrap justify-between items-center gap-2">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-circle-info text-cyan-400"></i>
+        <span>計算の前提条件:</span>
+      </div>
+      <div class="flex flex-wrap items-center gap-4 text-gray-400 font-mono">
+        <span>アボガドロ定数 $N_A = 6.02 \times 10^{23} \text{ /mol}$</span>
+        <span>気体標準状態 (0℃, 1atm): $V_m = 22.4 \text{ L/mol}$</span>
+      </div>
+    </div>
+
+    <!-- PAGE 1: Forward Converter (mol -> particle, mass, volume) -->
+    <section id="page-1" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- Left Controls & Results Panel (5 cols) -->
+      <div class="lg:col-span-5 flex flex-col gap-5">
+        
+        <!-- Substance Selector Card -->
+        <div class="glow-card rounded-2xl p-5 border border-gray-800">
+          <label class="text-xs text-cyan-400 font-semibold tracking-wider uppercase mb-2 block flex items-center gap-1.5">
+            <i class="fa-solid fa-flask"></i> 1. 物質の選択
+          </label>
+          <select id="p1-substance-select" onchange="updateP1Calculations()" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2.5 text-white font-medium focus:outline-none focus:border-cyan-500 transition-colors">
+            <!-- Dynamically populated -->
+          </select>
+
+          <!-- Substance detail preview -->
+          <div class="mt-4 p-3.5 bg-gray-950/80 rounded-xl border border-gray-800/80 flex justify-between items-center">
+            <div>
+              <div class="text-xs text-gray-400">分類・化学式</div>
+              <div class="text-lg font-bold text-white font-mono" id="p1-formula-display">--</div>
+            </div>
+            <div class="text-right">
+              <div class="text-xs text-gray-400">モル質量</div>
+              <div class="text-lg font-bold text-cyan-400 font-mono"><span id="p1-molar-mass-display">--</span> <span class="text-xs text-gray-400">g/mol</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mol Slider & Input Card -->
+        <div class="glow-card rounded-2xl p-5 border border-gray-800">
+          <div class="flex justify-between items-center mb-2">
+            <label class="text-xs text-cyan-400 font-semibold tracking-wider uppercase flex items-center gap-1.5">
+              <i class="fa-solid fa-sliders"></i> 2. 物質量 (mol) の設定
+            </label>
+            <span class="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded font-mono">0.01 ～ 5.00 mol</span>
+          </div>
+
+          <div class="flex items-center gap-4 my-3">
+            <input type="range" id="p1-mol-range" min="0.01" max="5.00" step="0.01" value="1.00" oninput="syncP1MolInput('range')" class="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-cyan-500">
+            <div class="flex items-center gap-1 min-w-[100px]">
+              <input type="number" id="p1-mol-num" min="0.01" max="100" step="0.01" value="1.00" oninput="syncP1MolInput('number')" class="w-20 bg-gray-950 border border-cyan-500/50 rounded-lg px-2.5 py-1.5 text-center font-bold font-mono text-cyan-300 text-lg focus:outline-none focus:border-cyan-400">
+              <span class="text-xs text-gray-400 font-medium">mol</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Calculated Output Cards -->
+        <div class="grid grid-cols-1 gap-3">
+          
+          <!-- Particle Count Card -->
+          <div class="glow-card rounded-xl p-4 border border-gray-800/90 relative overflow-hidden group">
+            <div class="absolute left-0 top-0 bottom-0 w-1 bg-purple-500"></div>
+            <div class="flex justify-between items-start mb-1">
+              <span class="text-xs text-gray-400 font-medium flex items-center gap-1.5">
+                <i class="fa-solid fa-[#10B981] fa-cubes text-purple-400"></i> 粒子の個数
+              </span>
+              <span class="text-[10px] text-gray-500 font-mono">N = n × 6.02×10²³</span>
+            </div>
+            <div class="text-2xl font-bold font-mono text-purple-300" id="p1-res-particles">--</div>
+            <div class="text-[11px] text-gray-400 mt-1 font-mono" id="p1-res-particles-raw">(-- 個)</div>
+          </div>
+
+          <!-- Mass Card -->
+          <div class="glow-card rounded-xl p-4 border border-gray-800/90 relative overflow-hidden group">
+            <div class="absolute left-0 top-0 bottom-0 w-1 bg-cyan-500"></div>
+            <div class="flex justify-between items-start mb-1">
+              <span class="text-xs text-gray-400 font-medium flex items-center gap-1.5">
+                <i class="fa-solid fa-weight-hanging text-cyan-400"></i> 質量 (g)
+              </span>
+              <span class="text-[10px] text-gray-500 font-mono">m = n × モル質量</span>
+            </div>
+            <div class="text-2xl font-bold font-mono text-cyan-300" id="p1-res-mass">--</div>
+            <div class="text-[11px] text-gray-400 mt-1" id="p1-res-mass-desc">--</div>
+          </div>
+
+          <!-- Gas Volume Card -->
+          <div class="glow-card rounded-xl p-4 border border-gray-800/90 relative overflow-hidden group">
+            <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
+            <div class="flex justify-between items-start mb-1">
+              <span class="text-xs text-gray-400 font-medium flex items-center gap-1.5">
+                <i class="fa-solid fa-wind text-emerald-400"></i> 気体の体積 (標準状態)
+              </span>
+              <span class="text-[10px] text-gray-500 font-mono">V = n × 22.4 L</span>
+            </div>
+            <div class="text-2xl font-bold font-mono text-emerald-300" id="p1-res-volume">--</div>
+            <div class="text-[11px] text-gray-400 mt-1" id="p1-res-volume-desc">※気体のみ適用可能</div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Right Simulation Canvas Panel (7 cols) -->
+      <div class="lg:col-span-7 flex flex-col h-full min-h-[480px]">
+        <div class="glow-card rounded-2xl border border-gray-800 p-4 flex flex-col h-full relative overflow-hidden">
+          
+          <div class="flex flex-wrap justify-between items-center mb-3 gap-2">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-cyan-400 animate-pulse"></span>
+              <h2 class="font-bold text-sm text-gray-200">粒子シミュレーション（視覚的モル概念）</h2>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <span class="bg-gray-800 text-gray-300 px-2.5 py-1 rounded-full font-mono" id="canvas-particle-count-tag">描画粒子数: -- 個</span>
+              <button onclick="toggleCanvasPause()" id="btn-canvas-pause" class="bg-gray-800 hover:bg-gray-700 text-gray-200 px-3 py-1 rounded-lg border border-gray-700 transition">
+                <i class="fa-solid fa-pause"></i> 一時停止
+              </button>
+            </div>
+          </div>
+
+          <!-- Canvas Container -->
+          <div class="relative w-full flex-grow rounded-xl overflow-hidden bg-gray-950 border border-gray-800/80 min-h-[360px]" id="canvas-container">
+            <canvas id="particle-canvas" class="w-full h-full block"></canvas>
+            
+            <!-- Canvas Overlay Badge -->
+            <div class="absolute bottom-3 left-3 bg-gray-900/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-gray-800 text-xs font-mono text-gray-300 pointer-events-none">
+              <span class="text-cyan-400 font-bold">1 particles in simulation</span> ≈ <span id="canvas-mol-representation">1.00 mol</span> (<span id="canvas-real-count">6.02 × 10²³</span> 個の極小粒子群)
+            </div>
+          </div>
+
+          <!-- Legend / Description below canvas -->
+          <div class="mt-3 text-xs text-gray-400 leading-relaxed bg-gray-950/40 p-2.5 rounded-xl border border-gray-800/50 flex items-center justify-between">
+            <div id="substance-structure-note">
+              <!-- Dynamically populated -->
+            </div>
+            <div class="text-[10px] text-gray-500 text-right">※画面上の描画数はmol量に比例した密度のイメージ表現です</div>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+
+    <!-- PAGE 2: Reverse Converter & Mole Bridge -->
+    <section id="page-2" class="hidden flex-col gap-6">
+      
+      <!-- Top Input & Select Section -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+        
+        <!-- Substance Choice (4 cols) -->
+        <div class="md:col-span-4 glow-card rounded-2xl p-5 border border-gray-800">
+          <label class="text-xs text-cyan-400 font-semibold tracking-wider uppercase mb-2 block flex items-center gap-1.5">
+            <i class="fa-solid fa-flask"></i> 1. 物質の選択
+          </label>
+          <select id="p2-substance-select" onchange="calculateP2Reverse()" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2.5 text-white font-medium focus:outline-none focus:border-cyan-500">
+            <!-- Dynamically populated -->
+          </select>
+          <div class="mt-4 p-3 bg-gray-950/80 rounded-xl border border-gray-800/80 text-xs flex justify-between">
+            <span class="text-gray-400">モル質量:</span>
+            <span class="text-cyan-400 font-mono font-bold" id="p2-molar-mass-val">-- g/mol</span>
+          </div>
+        </div>
+
+        <!-- Input Mode Tabs & Entry (8 cols) -->
+        <div class="md:col-span-8 glow-card rounded-2xl p-5 border border-gray-800">
+          <label class="text-xs text-cyan-400 font-semibold tracking-wider uppercase mb-2 block">
+            2. 入力項目の選択（どれか1つの値を指定）
+          </label>
+          
+          <!-- Mode Tabs -->
+          <div class="grid grid-cols-3 gap-2 p-1 bg-gray-950 rounded-xl border border-gray-800 mb-4 text-xs font-medium">
+            <button id="p2-tab-particles" onclick="setP2Mode('particles')" class="py-2 rounded-lg transition text-cyan-400 bg-gray-800 border border-cyan-500/30">
+              <i class="fa-solid fa-cubes"></i> 粒子の個数から
+            </button>
+            <button id="p2-tab-mass" onclick="setP2Mode('mass')" class="py-2 rounded-lg transition text-gray-400 hover:text-white">
+              <i class="fa-solid fa-weight-hanging"></i> 質量 (g) から
+            </button>
+            <button id="p2-tab-volume" onclick="setP2Mode('volume')" class="py-2 rounded-lg transition text-gray-400 hover:text-white">
+              <i class="fa-solid fa-wind"></i> 気体の体積 (L) から
+            </button>
+          </div>
+
+          <!-- Dynamic Input Controls -->
+          <div class="bg-gray-950/80 p-4 rounded-xl border border-gray-800">
+            
+            <!-- Input Mode: Particles -->
+            <div id="p2-input-group-particles" class="p2-input-group flex flex-col sm:flex-row items-center gap-3">
+              <div class="flex-grow w-full">
+                <label class="text-xs text-gray-400 mb-1 block">粒子の個数 (例: 1.204 × 10²⁴ 個)</label>
+                <div class="flex items-center gap-2">
+                  <input type="number" id="p2-val-part-coeff" value="3.01" step="0.01" oninput="calculateP2Reverse()" class="w-28 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-mono text-center">
+                  <span class="text-gray-400 font-mono">× 10 ^</span>
+                  <input type="number" id="p2-val-part-exp" value="23" step="1" oninput="calculateP2Reverse()" class="w-20 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-mono text-center">
+                  <span class="text-xs text-gray-400">個</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Input Mode: Mass -->
+            <div id="p2-input-group-mass" class="p2-input-group hidden flex-col sm:flex-row items-center gap-3">
+              <div class="flex-grow w-full">
+                <label class="text-xs text-gray-400 mb-1 block">質量 (g)</label>
+                <div class="flex items-center gap-2">
+                  <input type="number" id="p2-val-mass" value="36.0" step="0.1" min="0" oninput="calculateP2Reverse()" class="w-48 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-mono text-center text-lg">
+                  <span class="text-xs text-gray-400">g</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Input Mode: Volume -->
+            <div id="p2-input-group-volume" class="p2-input-group hidden flex-col sm:flex-row items-center gap-3">
+              <div class="flex-grow w-full">
+                <label class="text-xs text-gray-400 mb-1 block">気体の体積 (L / 標準状態)</label>
+                <div class="flex items-center gap-2">
+                  <input type="number" id="p2-val-volume" value="11.2" step="0.1" min="0" oninput="calculateP2Reverse()" class="w-48 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-mono text-center text-lg">
+                  <span class="text-xs text-gray-400">L</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Mole Bridge Visual Flowchart Card -->
+      <div class="glow-card rounded-2xl p-6 border border-gray-800">
+        <h3 class="text-xs text-cyan-400 font-semibold tracking-wider uppercase mb-6 flex items-center gap-2">
+          <i class="fa-solid fa-diagram-project"></i> モル・ブリッジ（相互変換フローチャート）
+        </h3>
+
+        <!-- Interactive Flow Graph -->
+        <div class="grid grid-cols-1 md:grid-cols-7 gap-3 items-center text-center">
+          
+          <!-- Outer 1: Particle Count -->
+          <div id="flow-node-particles" class="p-4 rounded-xl border border-gray-800 bg-gray-950 transition-all duration-300">
+            <div class="text-xs text-gray-400 mb-1">粒子の個数</div>
+            <div class="text-lg font-bold font-mono text-purple-400" id="flow-val-particles">--</div>
+            <div class="text-[10px] text-gray-500 mt-1">N (個)</div>
+          </div>
+
+          <!-- Arrow 1 -->
+          <div class="flex flex-col items-center justify-center text-xs text-gray-500">
+            <span id="flow-arrow-particles-in" class="transition-colors">÷ (6.02×10²³) ➔</span>
+            <span class="my-0.5 border-t border-gray-800 w-full max-w-[60px]"></span>
+            <span id="flow-arrow-particles-out" class="transition-colors">← × (6.02×10²³)</span>
+          </div>
+
+          <!-- CENTER: MOLE (mol) -->
+          <div id="flow-node-mol" class="p-5 rounded-2xl border border-cyan-500/50 bg-cyan-950/30 transition-all duration-300 glow-accent">
+            <div class="text-xs text-cyan-400 font-semibold mb-1 uppercase tracking-wider">中心概念</div>
+            <div class="text-2xl font-extrabold font-mono text-cyan-300" id="flow-val-mol">-- mol</div>
+            <div class="text-xs text-cyan-400/80 mt-1">物質量 (n)</div>
+          </div>
+
+          <!-- Arrow 2 -->
+          <div class="flex flex-col items-center justify-center text-xs text-gray-500">
+            <span id="flow-arrow-mass-in" class="transition-colors">➔ × (モル質量)</span>
+            <span class="my-0.5 border-t border-gray-800 w-full max-w-[60px]"></span>
+            <span id="flow-arrow-mass-out" class="transition-colors">÷ (モル質量) ←</span>
+          </div>
+
+          <!-- Outer 2: Mass -->
+          <div id="flow-node-mass" class="p-4 rounded-xl border border-gray-800 bg-gray-950 transition-all duration-300">
+            <div class="text-xs text-gray-400 mb-1">質量</div>
+            <div class="text-lg font-bold font-mono text-cyan-400" id="flow-val-mass">--</div>
+            <div class="text-[10px] text-gray-500 mt-1">m (g)</div>
+          </div>
+
+        </div>
+
+        <!-- Gas volume sub flow -->
+        <div class="mt-6 pt-6 border-t border-gray-800 flex flex-col items-center">
+          <div class="text-xs text-gray-400 mb-2">気体物質の場合（標準状態 0℃, 1atm）</div>
+          <div class="flex items-center gap-4">
+            <div id="flow-node-volume" class="p-3 px-6 rounded-xl border border-gray-800 bg-gray-950 text-center transition-all">
+              <div class="text-xs text-gray-400">気体の体積</div>
+              <div class="text-lg font-bold font-mono text-emerald-400" id="flow-val-volume">--</div>
+            </div>
+            <div class="text-xs text-gray-500 font-mono flex flex-col items-center">
+              <span id="flow-arrow-vol-calc">n = V / 22.4</span>
+              <span class="text-[10px] text-gray-600">⇄ (× / ÷ 22.4 L/mol)</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Detail Step Calculation Card -->
+      <div class="glow-card rounded-2xl p-5 border border-gray-800">
+        <h4 class="text-xs text-cyan-400 font-semibold tracking-wider uppercase mb-2 flex items-center gap-2">
+          <i class="fa-solid fa-list-check"></i> 変換プロセス・計算式の詳細
+        </h4>
+        <div id="p2-formula-steps" class="font-mono text-xs text-gray-300 bg-gray-950 p-4 rounded-xl border border-gray-800/80 leading-relaxed whitespace-pre-line">
+          --
+        </div>
+      </div>
+
+    </section>
+
+    <!-- PAGE 3: Quiz & Practice -->
+    <section id="page-3" class="hidden flex-col gap-6">
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Quiz Box (8 cols) -->
+        <div class="lg:col-span-8 flex flex-col gap-5">
+          
+          <div class="glow-card rounded-2xl p-6 border border-gray-800 relative">
+            
+            <!-- Question Header Info -->
+            <div class="flex justify-between items-center mb-4">
+              <div class="flex items-center gap-2">
+                <span id="quiz-tag-type" class="bg-cyan-950 text-cyan-400 border border-cyan-800 px-2.5 py-1 rounded-full text-xs font-semibold">
+                  原子・基本
+                </span>
+                <span id="quiz-substance-badge" class="bg-gray-800 text-gray-300 px-2.5 py-1 rounded-full text-xs font-mono">
+                  H2O
+                </span>
+              </div>
+              <button onclick="generateQuiz()" class="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
+                <i class="fa-solid fa-arrows-rotate"></i> 別の問題にする
+              </button>
+            </div>
+
+            <!-- Question Text -->
+            <div class="my-4">
+              <h3 id="quiz-question-text" class="text-base sm:text-lg font-bold text-white leading-snug">
+                問題読み込み中...
+              </h3>
+            </div>
+
+            <!-- Answer Options (Radio / Buttons) -->
+            <div id="quiz-options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3 my-5">
+              <!-- Dynamically generated buttons -->
+            </div>
+
+            <!-- Action Controls -->
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-gray-800">
+              <button onclick="toggleQuizHint()" class="text-xs text-yellow-400 hover:text-yellow-300 flex items-center gap-1.5 bg-yellow-950/30 px-3 py-1.5 rounded-lg border border-yellow-800/50">
+                <i class="fa-regular fa-lightbulb"></i> ヒントを表示
+              </button>
+              <button id="btn-next-quiz" onclick="generateQuiz()" class="hidden bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs px-5 py-2.5 rounded-xl shadow-lg transition">
+                次の問題へ <i class="fa-solid fa-arrow-right ml-1"></i>
+              </button>
+            </div>
+
+            <!-- Hint Box -->
+            <div id="quiz-hint-box" class="hidden mt-4 p-3.5 bg-yellow-950/20 border border-yellow-800/40 rounded-xl text-xs text-yellow-200/90 leading-relaxed">
+              <span class="font-bold block mb-1">💡 計算のヒント:</span>
+              <span id="quiz-hint-text">--</span>
+            </div>
+
+            <!-- Explanation / Result Box -->
+            <div id="quiz-result-box" class="hidden mt-4 p-4 rounded-xl border leading-relaxed text-xs">
+              <!-- Dynamically set -->
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Right Scoreboard & Stats (4 cols) -->
+        <div class="lg:col-span-4 flex flex-col gap-5">
+          
+          <div class="glow-card rounded-2xl p-5 border border-gray-800 text-center">
+            <h4 class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-4">学習スコア</h4>
+            
+            <div class="grid grid-cols-2 gap-3 mb-4">
+              <div class="p-3 bg-gray-950 rounded-xl border border-gray-800">
+                <div class="text-2xl font-black text-cyan-400 font-mono" id="score-correct-count">0</div>
+                <div class="text-[10px] text-gray-400 mt-0.5">正解数</div>
+              </div>
+              <div class="p-3 bg-gray-950 rounded-xl border border-gray-800">
+                <div class="text-2xl font-black text-purple-400 font-mono" id="score-streak-count">0</div>
+                <div class="text-[10px] text-gray-400 mt-0.5">連続正解</div>
+              </div>
+            </div>
+
+            <div class="p-3 bg-gray-950/60 rounded-xl border border-gray-800/80 text-xs text-gray-400 text-left">
+              <span class="font-bold text-gray-300 block mb-1"><i class="fa-solid fa-bullseye text-cyan-400"></i> 定着のコツ</span>
+              まずは $n = \frac{m}{M}$ （モル質量で割る）の公式をマスターしましょう。粒子の個数は常に $6.02 \times 10^{23}$ 倍になります。
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-gray-800 bg-gray-950 py-4 text-center text-xs text-gray-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+      <div>化学学習支援ツール - 物質量(mol) インタラクティブシミュレータ</div>
+      <div class="font-mono text-[11px]">N<sub>A</sub> = 6.02 × 10²³ /mol | V<sub>m</sub> = 22.4 L/mol</div>
+    </div>
+  </footer>
+
+  <!-- MAIN SCRIPT -->
+  <script>
+    /* =========================================================================
+       1. DATA STRUCTURES & CONSTANTS
+       ========================================================================= */
+    const AVOGADRO = 6.02214076e23;
+    const GAS_MOLAR_VOLUME = 22.414; // L/mol at STP
+
+    // Master dataset of substances
+    const SUBSTANCES = {
+      'He': {
+        name: 'ヘリウム',
+        formula: 'He',
+        type: '原子 (単原子分子/気体)',
+        molarMass: 4.00,
+        isGas: true,
+        color: '#38BDF8', // Cyan/sky
+        particleType: 'single_atom',
+        desc: '単原子分子として自由空間を飛び回る軽量な稀有ガスです。'
+      },
+      'C': {
+        name: '炭素 (黒鉛)',
+        formula: 'C',
+        type: '原子 (共有結合結晶)',
+        molarMass: 12.01,
+        isGas: false,
+        color: '#9CA3AF', // Gray
+        particleType: 'solid_lattice',
+        desc: '炭素原子が強固に網目状に結合した固体物質です。'
+      },
+      'Fe': {
+        name: '鉄',
+        formula: 'Fe',
+        type: '原子 (金属結晶)',
+        molarMass: 55.85,
+        isGas: false,
+        color: '#E5E7EB', // Metallic silver
+        particleType: 'metal_lattice',
+        desc: '金属結合により原子が規則正しく並び、自由電子が動き回ります。'
+      },
+      'H2O': {
+        name: '水',
+        formula: 'H₂O',
+        type: '分子 (液体)',
+        molarMass: 18.02,
+        isGas: false,
+        color: '#3B82F6', // Blue
+        particleType: 'h2o_molecule',
+        desc: '酸素(赤)1個と水素(白)2個が折れ線型に結合した分子です。'
+      },
+      'CO2': {
+        name: '二酸化炭素',
+        formula: 'CO₂',
+        type: '分子 (気体)',
+        molarMass: 44.01,
+        isGas: true,
+        color: '#F59E0B', // Amber
+        particleType: 'co2_molecule',
+        desc: '炭素1個と酸素2個が直線状に結合した無色・高密度の気体です。'
+      },
+      'O2': {
+        name: '酸素',
+        formula: 'O₂',
+        type: '分子 (気体)',
+        molarMass: 32.00,
+        isGas: true,
+        color: '#EF4444', // Red
+        particleType: 'diatomic_molecule',
+        desc: '2つの酸素原子が二重結合で結ばれた二原子分子です。'
+      },
+      'NaCl': {
+        name: '塩化ナトリウム',
+        formula: 'NaCl',
+        type: 'イオン結晶 (塩)',
+        molarMass: 58.44,
+        isGas: false,
+        color: '#10B981', // Emerald
+        particleType: 'ion_crystal',
+        desc: '陽イオン Na⁺ (小/青) と 陰イオン Cl⁻ (大/緑) が交互にイオン結合した結晶です。'
+      }
+    };
+
+    // State Variables
+    let currentTab = 1;
+    let p2InputMode = 'particles'; // 'particles', 'mass', 'volume'
+    let isCanvasPaused = false;
+    let animFrameId = null;
+
+    // Quiz State
+    let quizState = {
+      currentQuestion: null,
+      correctCount: 0,
+      streakCount: 0
+    };
+
+    /* =========================================================================
+       2. INITIALIZATION
+       ========================================================================= */
+    window.onload = function() {
+      populateSubstanceSelects();
+      updateP1Calculations();
+      initCanvas();
+      calculateP2Reverse();
+      generateQuiz();
+    };
+
+    function populateSubstanceSelects() {
+      const p1Select = document.getElementById('p1-substance-select');
+      const p2Select = document.getElementById('p2-substance-select');
+
+      p1Select.innerHTML = '';
+      p2Select.innerHTML = '';
+
+      for (const [key, sub] of Object.entries(SUBSTANCES)) {
+        const optionHTML = `<option value="${key}">${sub.formula} (${sub.name}) [${sub.type}]</option>`;
+        p1Select.innerHTML += optionHTML;
+        p2Select.innerHTML += optionHTML;
+      }
+    }
+
+    function switchTab(tabNum) {
+      currentTab = tabNum;
+      
+      // Update Tab UI
+      for (let i = 1; i <= 3; i++) {
+        const btn = document.getElementById(`tab-btn-${i}`);
+        const page = document.getElementById(`page-${i}`);
+        
+        if (i === tabNum) {
+          btn.className = "px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 bg-cyan-600 text-white shadow-md";
+          page.classList.remove('hidden');
+          page.classList.add('flex');
+        } else {
+          btn.className = "px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 text-gray-400 hover:text-white";
+          page.classList.add('hidden');
+          page.classList.remove('flex');
+        }
+      }
+
+      // Resize canvas if returning to tab 1
+      if (tabNum === 1) {
+        setTimeout(resizeCanvas, 50);
+      }
+    }
+
+    /* =========================================================================
+       3. PAGE 1: FORWARD CONVERTER LOGIC (mol -> N, m, V)
+       ========================================================================= */
+    function syncP1MolInput(source) {
+      const range = document.getElementById('p1-mol-range');
+      const num = document.getElementById('p1-mol-num');
+
+      if (source === 'range') {
+        num.value = range.value;
+      } else {
+        range.value = num.value;
+      }
+      updateP1Calculations();
+    }
+
+    function updateP1Calculations() {
+      const subKey = document.getElementById('p1-substance-select').value;
+      const molVal = parseFloat(document.getElementById('p1-mol-num').value) || 0;
+      const sub = SUBSTANCES[subKey];
+
+      // Update info banner
+      document.getElementById('p1-formula-display').textContent = sub.formula;
+      document.getElementById('p1-molar-mass-display').textContent = sub.molarMass.toFixed(2);
+
+      // Calculations
+      const particles = molVal * AVOGADRO;
+      const mass = molVal * sub.molarMass;
+      const volume = sub.isGas ? molVal * GAS_MOLAR_VOLUME : null;
+
+      // Scientific notation format for particles
+      const expStr = particles.toExponential(3); // e.g. 6.022e+23
+      const parts = expStr.split('e+');
+      const coeff = parseFloat(parts[0]).toFixed(2);
+      const exp = parts[1];
+
+      document.getElementById('p1-res-particles').innerHTML = `${coeff} × 10<sup>${exp}</sup> <span class="text-xs text-purple-400 font-normal">個</span>`;
+      document.getElementById('p1-res-particles-raw').textContent = `(${particles.toLocaleString('ja-JP', {maximumFractionDigits: 0})} 個)`;
+
+      document.getElementById('p1-res-mass').innerHTML = `${mass.toFixed(2)} <span class="text-xs text-cyan-400 font-normal">g</span>`;
+      document.getElementById('p1-res-mass-desc').textContent = `${molVal} mol × ${sub.molarMass} g/mol`;
+
+      if (sub.isGas) {
+        document.getElementById('p1-res-volume').innerHTML = `${volume.toFixed(2)} <span class="text-xs text-emerald-400 font-normal">L</span>`;
+        document.getElementById('p1-res-volume-desc').textContent = `${molVal} mol × 22.4 L/mol (標準状態)`;
+      } else {
+        document.getElementById('p1-res-volume').innerHTML = `<span class="text-gray-500 text-lg">N/A</span>`;
+        document.getElementById('p1-res-volume-desc').textContent = `※${sub.name}は標準状態で非気体`;
+      }
+
+      // Update canvas overlay labels
+      document.getElementById('canvas-mol-representation').textContent = `${molVal.toFixed(2)} mol`;
+      document.getElementById('canvas-real-count').textContent = `${coeff} × 10²³`;
+      document.getElementById('substance-structure-note').innerHTML = `
+        <span class="text-cyan-400 font-bold">${sub.formula} (${sub.type}):</span> ${sub.desc}
+      `;
+
+      // Update canvas particle parameters
+      updateParticleSimulationParams(molVal, sub);
+    }
+
+    /* =========================================================================
+       4. PAGE 1: PARTICLE SIMULATION CANVAS
+       ========================================================================= */
+    let canvas, ctx;
+    let simulationParticles = [];
+    let currentSubstanceObj = null;
+    let targetParticleCount = 100;
+
+    function initCanvas() {
+      canvas = document.getElementById('particle-canvas');
+      ctx = canvas.getContext('2d');
+
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+
+      // Start animation loop
+      requestAnimationFrame(animationLoop);
+    }
+
+    function resizeCanvas() {
+      const container = document.getElementById('canvas-container');
+      if (!container || !canvas) return;
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+    }
+
+    function toggleCanvasPause() {
+      isCanvasPaused = !isCanvasPaused;
+      const btn = document.getElementById('btn-canvas-pause');
+      if (isCanvasPaused) {
+        btn.innerHTML = `<i class="fa-solid fa-play"></i> 再開`;
+        btn.classList.add('border-cyan-500', 'text-cyan-400');
+      } else {
+        btn.innerHTML = `<i class="fa-solid fa-pause"></i> 一時停止`;
+        btn.classList.remove('border-cyan-500', 'text-cyan-400');
+      }
+    }
+
+    function updateParticleSimulationParams(molVal, subObj) {
+      currentSubstanceObj = subObj;
+
+      // Map mol (0.01 - 5.0) to screen visual particle count (e.g. 15 ~ 350 particles)
+      targetParticleCount = Math.floor(Math.min(450, Math.max(20, molVal * 70)));
+      document.getElementById('canvas-particle-count-tag').textContent = `描画粒子数: ${targetParticleCount} 個`;
+
+      // Re-populate or adjust particle list
+      const diff = targetParticleCount - simulationParticles.length;
+      if (diff > 0) {
+        for (let i = 0; i < diff; i++) {
+          simulationParticles.push(createNewParticle(subObj));
+        }
+      } else if (diff < 0) {
+        simulationParticles.splice(0, Math.abs(diff));
+      }
+    }
+
+    function createNewParticle(subObj) {
+      const w = canvas ? canvas.width : 500;
+      const h = canvas ? canvas.height : 400;
+
+      // Velocity based on gas / liquid / solid
+      let speedFactor = 1.2;
+      if (subObj.isGas) speedFactor = 2.5;
+      if (subObj.particleType.includes('solid') || subObj.particleType.includes('crystal')) speedFactor = 0.3;
+
+      return {
+        x: Math.random() * (w - 40) + 20,
+        y: Math.random() * (h - 40) + 20,
+        vx: (Math.random() - 0.5) * speedFactor * 2,
+        vy: (Math.random() - 0.5) * speedFactor * 2,
+        baseX: Math.random() * (w - 40) + 20, // For lattice vibrations
+        baseY: Math.random() * (h - 40) + 20,
+        radius: 6,
+        phase: Math.random() * Math.PI * 2,
+        type: subObj.particleType
+      };
+    }
+
+    function animationLoop() {
+      if (!isCanvasPaused && ctx && canvas) {
+        renderSimulation();
+      }
+      requestAnimationFrame(animationLoop);
+    }
+
+    function renderSimulation() {
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // Dark background clear
+      ctx.fillStyle = '#090D16';
+      ctx.fillRect(0, 0, w, h);
+
+      // Subtle grid pattern
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+      ctx.lineWidth = 1;
+      const gridSize = 30;
+      for (let x = 0; x < w; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      for (let y = 0; y < h; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      if (!currentSubstanceObj) return;
+
+      const pType = currentSubstanceObj.particleType;
+
+      // Render each particle based on molecular structure
+      for (let p of simulationParticles) {
+
+        // Update Physics
+        if (pType === 'solid_lattice' || pType === 'metal_lattice' || pType === 'ion_crystal') {
+          // Lattice vibration
+          p.phase += 0.08;
+          p.x = p.baseX + Math.sin(p.phase) * 1.5;
+          p.y = p.baseY + Math.cos(p.phase) * 1.5;
+        } else {
+          // Free fluid movement
+          p.x += p.vx;
+          p.y += p.vy;
+
+          // Wall bounce
+          if (p.x < 15 || p.x > w - 15) p.vx *= -1;
+          if (p.y < 15 || p.y > h - 15) p.vy *= -1;
+        }
+
+        // Draw specifics
+        ctx.save();
+        ctx.translate(p.x, p.y);
+
+        if (pType === 'single_atom') {
+          // Helium single sphere
+          ctx.beginPath();
+          ctx.arc(0, 0, 7, 0, Math.PI * 2);
+          ctx.fillStyle = '#38BDF8';
+          ctx.shadowColor = '#38BDF8';
+          ctx.shadowBlur = 8;
+          ctx.fill();
+
+        } else if (pType === 'h2o_molecule') {
+          // Water (1 Red Oxygen, 2 Small White Hydrogen)
+          // Oxygen center
+          ctx.beginPath();
+          ctx.arc(0, 0, 7, 0, Math.PI * 2);
+          ctx.fillStyle = '#EF4444';
+          ctx.fill();
+
+          // Hydrogen ears
+          ctx.fillStyle = '#F9FAFB';
+          ctx.beginPath();
+          ctx.arc(-6, -6, 4, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(6, -6, 4, 0, Math.PI * 2);
+          ctx.fill();
+
+        } else if (pType === 'co2_molecule') {
+          // CO2 (Linear O-C-O)
+          // Center Carbon (Gray)
+          ctx.beginPath();
+          ctx.arc(0, 0, 6, 0, Math.PI * 2);
+          ctx.fillStyle = '#6B7280';
+          ctx.fill();
+
+          // Oxygens on sides (Amber)
+          ctx.fillStyle = '#F59E0B';
+          ctx.beginPath();
+          ctx.arc(-9, 0, 5, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(9, 0, 5, 0, Math.PI * 2);
+          ctx.fill();
+
+        } else if (pType === 'diatomic_molecule') {
+          // Oxygen O2 (2 connected Red spheres)
+          ctx.fillStyle = '#EF4444';
+          ctx.beginPath();
+          ctx.arc(-4, 0, 6, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(4, 0, 6, 0, Math.PI * 2);
+          ctx.fill();
+
+        } else if (pType === 'ion_crystal') {
+          // NaCl (Na+ small blue, Cl- big green)
+          const isNa = (Math.floor(p.baseX + p.baseY) % 2 === 0);
+          ctx.beginPath();
+          if (isNa) {
+            ctx.arc(0, 0, 5, 0, Math.PI * 2);
+            ctx.fillStyle = '#3B82F6'; // Na+
+            ctx.shadowColor = '#3B82F6';
+            ctx.shadowBlur = 5;
+          } else {
+            ctx.arc(0, 0, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#10B981'; // Cl-
+            ctx.shadowColor = '#10B981';
+            ctx.shadowBlur = 5;
+          }
+          ctx.fill();
+
+        } else {
+          // Default generic atom/metal
+          ctx.beginPath();
+          ctx.arc(0, 0, 6, 0, Math.PI * 2);
+          ctx.fillStyle = currentSubstanceObj.color || '#06B6D4';
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+    }
+
+
+    /* =========================================================================
+       5. PAGE 2: REVERSE CONVERTER & MOLE BRIDGE LOGIC
+       ========================================================================= */
+    function setP2Mode(mode) {
+      p2InputMode = mode;
+
+      // Update button tab highlights
+      const modes = ['particles', 'mass', 'volume'];
+      modes.forEach(m => {
+        const btn = document.getElementById(`p2-tab-${m}`);
+        const grp = document.getElementById(`p2-input-group-${m}`);
+        if (m === mode) {
+          btn.className = "py-2 rounded-lg transition text-cyan-400 bg-gray-800 border border-cyan-500/30";
+          grp.classList.remove('hidden');
+          grp.classList.add('flex');
+        } else {
+          btn.className = "py-2 rounded-lg transition text-gray-400 hover:text-white";
+          grp.classList.add('hidden');
+          grp.classList.remove('flex');
+        }
+      });
+
+      calculateP2Reverse();
+    }
+
+    function calculateP2Reverse() {
+      const subKey = document.getElementById('p2-substance-select').value;
+      const sub = SUBSTANCES[subKey];
+
+      document.getElementById('p2-molar-mass-val').textContent = `${sub.molarMass.toFixed(2)} g/mol`;
+
+      let calculatedMol = 0;
+      let particleVal = 0;
+      let massVal = 0;
+      let volumeVal = 0;
+
+      let formulaStepsText = "";
+
+      if (p2InputMode === 'particles') {
+        const coeff = parseFloat(document.getElementById('p2-val-part-coeff').value) || 0;
+        const exp = parseFloat(document.getElementById('p2-val-part-exp').value) || 0;
+        particleVal = coeff * Math.pow(10, exp);
+
+        // n = N / N_A
+        calculatedMol = particleVal / AVOGADRO;
+        massVal = calculatedMol * sub.molarMass;
+        volumeVal = sub.isGas ? calculatedMol * GAS_MOLAR_VOLUME : null;
+
+        formulaStepsText = `【指定値】 粒子の個数 N = ${coeff} × 10^${exp} 個
+1. 物質量 (mol) の計算:
+   n = N / N_A = (${coeff} × 10^${exp}) / (6.02 × 10²³) = ${calculatedMol.toFixed(4)} mol
+
+2. 質量の計算:
+   m = n × モル質量 = ${calculatedMol.toFixed(4)} mol × ${sub.molarMass} g/mol = ${massVal.toFixed(3)} g`;
+
+        if (sub.isGas) {
+          formulaStepsText += `\n\n3. 気体体積の計算:
+   V = n × 22.4 L/mol = ${calculatedMol.toFixed(4)} mol × 22.4 = ${volumeVal.toFixed(3)} L`;
+        }
+
+      } else if (p2InputMode === 'mass') {
+        massVal = parseFloat(document.getElementById('p2-val-mass').value) || 0;
+
+        // n = m / M
+        calculatedMol = massVal / sub.molarMass;
+        particleVal = calculatedMol * AVOGADRO;
+        volumeVal = sub.isGas ? calculatedMol * GAS_MOLAR_VOLUME : null;
+
+        const expStr = particleVal.toExponential(3).split('e+');
+
+        formulaStepsText = `【指定値】 質量 m = ${massVal} g
+1. 物質量 (mol) の計算:
+   n = m / モル質量 = ${massVal} g / ${sub.molarMass} g/mol = ${calculatedMol.toFixed(4)} mol
+
+2. 粒子の個数の計算:
+   N = n × N_A = ${calculatedMol.toFixed(4)} mol × (6.02 × 10²³) = ${parseFloat(expStr[0]).toFixed(2)} × 10^${expStr[1]} 個`;
+
+        if (sub.isGas) {
+          formulaStepsText += `\n\n3. 気体体積の計算:
+   V = n × 22.4 L/mol = ${calculatedMol.toFixed(4)} mol × 22.4 = ${volumeVal.toFixed(3)} L`;
+        }
+
+      } else if (p2InputMode === 'volume') {
+        volumeVal = parseFloat(document.getElementById('p2-val-volume').value) || 0;
+
+        if (!sub.isGas) {
+          formulaStepsText = `※ ${sub.name} (${sub.formula}) は標準状態で気体ではないため、22.4 L/mol による換算は通常行いません。`;
+          calculatedMol = 0;
+          particleVal = 0;
+          massVal = 0;
+        } else {
+          // n = V / 22.4
+          calculatedMol = volumeVal / GAS_MOLAR_VOLUME;
+          particleVal = calculatedMol * AVOGADRO;
+          massVal = calculatedMol * sub.molarMass;
+
+          const expStr = particleVal.toExponential(3).split('e+');
+
+          formulaStepsText = `【指定値】 気体の体積 V = ${volumeVal} L (標準状態)
+1. 物質量 (mol) の計算:
+   n = V / 22.4 = ${volumeVal} L / 22.4 L/mol = ${calculatedMol.toFixed(4)} mol
+
+2. 粒子の個数の計算:
+   N = n × N_A = ${calculatedMol.toFixed(4)} mol × (6.02 × 10²³) = ${parseFloat(expStr[0]).toFixed(2)} × 10^${expStr[1]} 個
+
+3. 質量の計算:
+   m = n × モル質量 = ${calculatedMol.toFixed(4)} mol × ${sub.molarMass} g/mol = ${massVal.toFixed(3)} g`;
+        }
+      }
+
+      // Update Flowchart Display Values
+      document.getElementById('flow-val-mol').textContent = `${calculatedMol.toFixed(3)} mol`;
+
+      const pExpStr = particleVal.toExponential(2).split('e+');
+      document.getElementById('flow-val-particles').innerHTML = `${pExpStr[0]}×10<sup>${pExpStr[1] || 0}</sup> 個`;
+
+      document.getElementById('flow-val-mass').textContent = `${massVal.toFixed(2)} g`;
+
+      if (sub.isGas) {
+        document.getElementById('flow-val-volume').textContent = `${volumeVal ? volumeVal.toFixed(2) : '--'} L`;
+      } else {
+        document.getElementById('flow-val-volume').textContent = `非気体`;
+      }
+
+      // Highlight active flowchart nodes
+      highlightFlowchart(p2InputMode);
+
+      document.getElementById('p2-formula-steps').textContent = formulaStepsText;
+    }
+
+    function highlightFlowchart(mode) {
+      const nodeP = document.getElementById('flow-node-particles');
+      const nodeM = document.getElementById('flow-node-mass');
+      const nodeV = document.getElementById('flow-node-volume');
+
+      nodeP.classList.remove('flow-node-active');
+      nodeM.classList.remove('flow-node-active');
+      nodeV.classList.remove('flow-node-active');
+
+      if (mode === 'particles') nodeP.classList.add('flow-node-active');
+      if (mode === 'mass') nodeM.classList.add('flow-node-active');
+      if (mode === 'volume') nodeV.classList.add('flow-node-active');
+    }
+
+
+    /* =========================================================================
+       6. PAGE 3: QUIZ & PRACTICE SYSTEM
+       ========================================================================= */
+    const QUIZ_TEMPLATES = [
+      {
+        type: 'mass_to_mol',
+        gen: () => {
+          const keys = ['H2O', 'CO2', 'NaCl', 'He', 'C'];
+          const key = keys[Math.floor(Math.random() * keys.length)];
+          const sub = SUBSTANCES[key];
+          const mol = (Math.floor(Math.random() * 20) + 1) * 0.1; // 0.1 ~ 2.0
+          const mass = parseFloat((mol * sub.molarMass).toFixed(2));
+
+          const questionText = `${sub.name}（${sub.formula}、モル質量 ${sub.molarMass} g/mol）${mass} g の物質量は何 mol か？`;
+          const correctVal = mol.toFixed(2);
+          
+          // Generate wrong options
+          const options = [
+            `${correctVal} mol`,
+            `${(mol * 2).toFixed(2)} mol`,
+            `${(mass / 22.4).toFixed(2)} mol`,
+            `${(mol * 0.5).toFixed(2)} mol`
+          ];
+
+          return {
+            tag: `${sub.type}`,
+            substance: sub.formula,
+            question: questionText,
+            options: shuffleArray(options),
+            correctIndex: options.indexOf(`${correctVal} mol`),
+            hint: `物質量 n [mol] = 質量 m [g] ÷ モル質量 M [g/mol] の公式を使います。`,
+            explanation: `正解は ${correctVal} mol です。\n計算式: ${mass} g ÷ ${sub.molarMass} g/mol = ${correctVal} mol`
+          };
+        }
+      },
+      {
+        type: 'volume_to_particles',
+        gen: () => {
+          const keys = ['He', 'CO2', 'O2'];
+          const key = keys[Math.floor(Math.random() * keys.length)];
+          const sub = SUBSTANCES[key];
+          const molArr = [0.25, 0.5, 1.0, 1.5, 2.0];
+          const mol = molArr[Math.floor(Math.random() * molArr.length)];
+          const vol = parseFloat((mol * GAS_MOLAR_VOLUME).toFixed(2));
+
+          const particles = mol * AVOGADRO;
+          const expStr = particles.toExponential(2).split('e+');
+          const correctStr = `${parseFloat(expStr[0]).toFixed(2)} × 10²³ 個`;
+
+          const questionText = `標準状態において、${sub.name}（${sub.formula}）${vol} L に含まれる分子（粒子）の個数は何個か？`;
+
+          const wrong1 = `${(parseFloat(expStr[0]) * 2).toFixed(2)} × 10²³ 個`;
+          const wrong2 = `${(parseFloat(expStr[0]) * 0.5).toFixed(2)} × 10²³ 個`;
+          const wrong3 = `${(vol * 6.02).toFixed(2)} × 10²³ 個`;
+
+          const options = [correctStr, wrong1, wrong2, wrong3];
+
+          return {
+            tag: `気体と個数`,
+            substance: sub.formula,
+            question: questionText,
+            options: shuffleArray(options),
+            correctIndex: options.indexOf(correctStr),
+            hint: `まず気体の体積 (L) を 22.4 L/mol で割って mol を求めた後、アボガドロ定数 (6.02 × 10²³) を掛けます。`,
+            explanation: `正解は ${correctStr} です。\n1. molの計算: ${vol} L ÷ 22.4 L/mol = ${mol} mol\n2. 個数の計算: ${mol} mol × (6.02 × 10²³) = ${correctStr}`
+          };
+        }
+      },
+      {
+        type: 'mol_to_mass',
+        gen: () => {
+          const keys = ['NaCl', 'Fe', 'H2O'];
+          const key = keys[Math.floor(Math.random() * keys.length)];
+          const sub = SUBSTANCES[key];
+          const mol = (Math.floor(Math.random() * 5) + 1) * 0.5; // 0.5, 1.0, 1.5, ...
+          const mass = (mol * sub.molarMass).toFixed(2);
+
+          const questionText = `${sub.name}（${sub.formula}）${mol} mol の質量は何 g か？（モル質量: ${sub.molarMass} g/mol）`;
+
+          const correctStr = `${mass} g`;
+          const wrong1 = `${(sub.molarMass / mol).toFixed(2)} g`;
+          const wrong2 = `${(parseFloat(mass) + 10).toFixed(2)} g`;
+          const wrong3 = `${(mol * 22.4).toFixed(2)} g`;
+
+          const options = [correctStr, wrong1, wrong2, wrong3];
+
+          return {
+            tag: `${sub.type}`,
+            substance: sub.formula,
+            question: questionText,
+            options: shuffleArray(options),
+            correctIndex: options.indexOf(correctStr),
+            hint: `質量 m [g] = 物質量 n [mol] × モル質量 M [g/mol] で計算できます。`,
+            explanation: `正解は ${correctStr} です。\n計算式: ${mol} mol × ${sub.molarMass} g/mol = ${mass} g`
+          };
+        }
+      }
+    ];
+
+    function generateQuiz() {
+      // Hide hint & result box
+      document.getElementById('quiz-hint-box').classList.add('hidden');
+      document.getElementById('quiz-result-box').classList.add('hidden');
+      document.getElementById('btn-next-quiz').classList.add('hidden');
+
+      // Pick random template
+      const template = QUIZ_TEMPLATES[Math.floor(Math.random() * QUIZ_TEMPLATES.length)];
+      const q = template.gen();
+      quizState.currentQuestion = q;
+
+      // Fill UI
+      document.getElementById('quiz-tag-type').textContent = q.tag;
+      document.getElementById('quiz-substance-badge').textContent = q.substance;
+      document.getElementById('quiz-question-text').textContent = q.question;
+      document.getElementById('quiz-hint-text').textContent = q.hint;
+
+      // Fill Options
+      const optionsContainer = document.getElementById('quiz-options-container');
+      optionsContainer.innerHTML = '';
+
+      q.options.forEach((optText, idx) => {
+        const btn = document.createElement('button');
+        btn.className = "p-3.5 bg-gray-900 hover:bg-gray-800 border border-gray-700/80 rounded-xl text-left text-sm font-medium text-gray-200 transition-all flex items-center justify-between group";
+        btn.onclick = () => checkQuizAnswer(idx, btn);
+        btn.innerHTML = `
+          <span>${optText}</span>
+          <i class="fa-regular fa-circle text-gray-600 group-hover:text-cyan-400"></i>
+        `;
+        optionsContainer.appendChild(btn);
+      });
+    }
+
+    function checkQuizAnswer(selectedIndex, clickedBtn) {
+      const q = quizState.currentQuestion;
+      const optionsContainer = document.getElementById('quiz-options-container');
+      const buttons = optionsContainer.querySelectorAll('button');
+
+      // Disable all buttons after pick
+      buttons.forEach(b => b.disabled = true);
+
+      const resultBox = document.getElementById('quiz-result-box');
+      resultBox.classList.remove('hidden');
+
+      if (selectedIndex === q.correctIndex) {
+        // Correct
+        quizState.correctCount++;
+        quizState.streakCount++;
+
+        clickedBtn.className = "p-3.5 bg-emerald-950/60 border-2 border-emerald-500 rounded-xl text-left text-sm font-medium text-emerald-200 flex items-center justify-between";
+        clickedBtn.querySelector('i').className = "fa-solid fa-circle-check text-emerald-400 text-lg";
+
+        resultBox.className = "mt-4 p-4 rounded-xl border border-emerald-800/80 bg-emerald-950/30 text-emerald-200 leading-relaxed text-xs";
+        resultBox.innerHTML = `
+          <div class="font-bold text-sm mb-1 flex items-center gap-2 text-emerald-400">
+            <i class="fa-solid fa-circle-check"></i> 正解です！素晴らしい！
+          </div>
+          <div class="whitespace-pre-line">${q.explanation}</div>
+        `;
+      } else {
+        // Wrong
+        quizState.streakCount = 0;
+
+        clickedBtn.className = "p-3.5 bg-rose-950/60 border-2 border-rose-500 rounded-xl text-left text-sm font-medium text-rose-200 flex items-center justify-between";
+        clickedBtn.querySelector('i').className = "fa-solid fa-circle-xmark text-rose-400 text-lg";
+
+        // Highlight correct one
+        buttons[q.correctIndex].className = "p-3.5 bg-emerald-950/40 border border-emerald-600 rounded-xl text-left text-sm font-medium text-emerald-300 flex items-center justify-between";
+
+        resultBox.className = "mt-4 p-4 rounded-xl border border-rose-800/80 bg-rose-950/30 text-rose-200 leading-relaxed text-xs";
+        resultBox.innerHTML = `
+          <div class="font-bold text-sm mb-1 flex items-center gap-2 text-rose-400">
+            <i class="fa-solid fa-triangle-exclamation"></i> 残念、不正解です...
+          </div>
+          <div class="whitespace-pre-line">${q.explanation}</div>
+        `;
+      }
+
+      // Update Scores UI
+      document.getElementById('score-correct-count').textContent = quizState.correctCount;
+      document.getElementById('score-streak-count').textContent = quizState.streakCount;
+
+      // Show Next button
+      document.getElementById('btn-next-quiz').classList.remove('hidden');
+    }
+
+    function toggleQuizHint() {
+      const hintBox = document.getElementById('quiz-hint-box');
+      hintBox.classList.toggle('hidden');
+    }
+
+    function shuffleArray(arr) {
+      const array = [...arr];
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+  </script>
+</body>
+</html>
